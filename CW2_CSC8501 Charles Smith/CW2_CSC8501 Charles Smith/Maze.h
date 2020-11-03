@@ -12,7 +12,7 @@ private:
 	int height;
 	Coord finish;
 
-	CellType** map;
+	CellType* map;
 	std::vector<Coord> entrances;
 	std::vector<Player> activePlayers;
 
@@ -20,7 +20,7 @@ private:
 	void GenerateEntrances(int _count);
 	bool ProcessPlayerTurn(Player& _player);
 	std::vector<Coord> GeneratePath(const Coord& _start, const Coord& _finish);
-	CellType* operator[](int _index) { return map[_index]; }
+	CellType* operator[](int _index) { return &map[_index * width]; }
 
 	friend Maze ReadMazeFromFile();
 
@@ -32,7 +32,7 @@ public:
 
 	int Height() const { return height; }
 	int Width() const { return width; }
-	CellType At(int _x, int _y) const { return map[_x][_y]; }
+	CellType At(int _x, int _y) const { return map[_x * width + _y]; }
 
 	bool InBounds(int _x, int _y) const { return _x >= 0 && _x < width&& _y >= 0 && _y < height; }
 	bool OnBoundary(int _x, int _y) const { return _x == 0 || _x == width - 1 || _y == 0 || _y == height - 1; }

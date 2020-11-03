@@ -55,7 +55,7 @@ std::vector<Coord> Maze::GeneratePath(const Coord& _start, const Coord& _finish)
 		{
 			Coord childPos = curr->pos + childModifiers[i];
 
-			if (!InBounds(childPos.x, childPos.y) || map[childPos.x][childPos.y] == CellType::Wall)
+			if (!InBounds(childPos.x, childPos.y) || (*this)[childPos.x][childPos.y] == CellType::Wall)
 				continue;
 
 			int fromStart = curr->fromStart + 1;
@@ -92,17 +92,17 @@ bool Maze::ProcessPlayerTurn(Player& _player)
 {
 	Coord next = _player.path.back();
 
-	switch (map[next.x][next.y])
+	switch ((*this)[next.x][next.y])
 	{
 	case CellType::Finish:
-		map[_player.pos.x][_player.pos.y] = _player.occupiedCellType;
+		(*this)[_player.pos.x][_player.pos.y] = _player.occupiedCellType;
 		return true;
 	case::CellType::Empty:
-		map[_player.pos.x][_player.pos.y] = _player.occupiedCellType;
+		(*this)[_player.pos.x][_player.pos.y] = _player.occupiedCellType;
 		_player.pos = next;
 		_player.path.pop_back();
-		_player.occupiedCellType = map[_player.pos.x][_player.pos.y];
-		map[_player.pos.x][_player.pos.y] = CellType::Player;
+		_player.occupiedCellType = (*this)[_player.pos.x][_player.pos.y];
+		(*this)[_player.pos.x][_player.pos.y] = CellType::Player;
 		break;
 	}
 
@@ -158,7 +158,7 @@ void Maze::GenerateEntrances(int _count)
 	{
 		entrances.push_back(possibleEntrances[i]);
 		activePlayers.push_back({entrances[i],GeneratePath(entrances[i],finish),CellType::Entrance });
-		map[possibleEntrances[i].x][possibleEntrances[i].y] = CellType::Player;
+		(*this)[possibleEntrances[i].x][possibleEntrances[i].y] = CellType::Player;
 	}
 }
 
@@ -172,8 +172,8 @@ void Maze::GenerateMaze()
 
 	for (int y = 0; y < height; y++)
 		for (int x = 0; x < width; x++)
-			map[x][y] = CellType::Wall;
-	map[1][1] = CellType::Empty;
+			(*this)[x][y] = CellType::Wall;
+	(*this)[1][1] = CellType::Empty;
 
 	std::vector<FrontierCell> frontierCells{};
 
@@ -187,30 +187,30 @@ void Maze::GenerateMaze()
 		FrontierCell currCell = frontierCells[pos];
 		frontierCells.erase(frontierCells.begin() + pos);
 
-		if (map[currCell.loc.x][currCell.loc.y] != CellType::Wall) continue;
+		if ((*this)[currCell.loc.x][currCell.loc.y] != CellType::Wall) continue;
 
 		Coord loc = currCell.loc;
 
-		map[loc.x][loc.y] = CellType::Empty;
-		map[currCell.connector.x][currCell.connector.y] = CellType::Empty;
+		(*this)[loc.x][loc.y] = CellType::Empty;
+		(*this)[currCell.connector.x][currCell.connector.y] = CellType::Empty;
 
-		if (loc.x + 2 < width - 1 && map[loc.x + 2][loc.y] == CellType::Wall)
+		if (loc.x + 2 < width - 1 && (*this)[loc.x + 2][loc.y] == CellType::Wall)
 			frontierCells.push_back({ {loc.x + 2, loc.y},{loc.x + 1, loc.y} });
 
-		if (loc.x - 2 > 0 && map[loc.x - 2][loc.y] == CellType::Wall)
+		if (loc.x - 2 > 0 && (*this)[loc.x - 2][loc.y] == CellType::Wall)
 			frontierCells.push_back({ {loc.x - 2, loc.y},{loc.x - 1, loc.y} });
 
-		if (loc.y + 2 < height - 1 && map[loc.x][loc.y + 2] == CellType::Wall)
+		if (loc.y + 2 < height - 1 && (*this)[loc.x][loc.y + 2] == CellType::Wall)
 			frontierCells.push_back({ {loc.x, loc.y + 2},{loc.x, loc.y + 1} });
 
-		if (loc.y - 2 > 0 && map[loc.x][loc.y - 2] == CellType::Wall)
+		if (loc.y - 2 > 0 && (*this)[loc.x][loc.y - 2] == CellType::Wall)
 			frontierCells.push_back({ {loc.x, loc.y - 2},{loc.x, loc.y - 1} });
 	}
 
 	for (int x = -1; x <= 1; x++)
 		for (int y = -1; y <= 1; y++)
-			map[finish.x + x][finish.y + y] = CellType::Empty;
-	map[finish.x][finish.y] = CellType::Finish;
+			(*this)[finish.x + x][finish.y + y] = CellType::Empty;
+	(*this)[finish.x][finish.y] = CellType::Finish;
 }
 
 Maze::Maze(int _width, int _height, int _entrances, bool _generate)
@@ -220,10 +220,7 @@ Maze::Maze(int _width, int _height, int _entrances, bool _generate)
 	width = _width;
 
 	finish = { width / 2,height / 2 };
-	map = new CellType * [width];
-
-	for (int i = 0; i < width; i++)
-		map[i] = new CellType[height]{};
+	map = new CellType [width * height];
 
 	if (_generate)
 	{
@@ -242,14 +239,9 @@ Maze::Maze(const Maze& _maze)
 	activePlayers = _maze.activePlayers;
 	entrances = _maze.entrances;
 
-	map = new CellType * [width];
+	map = new CellType [width * height];
 
-	for (int x = 0; x < width; x++)
-	{
-		map[x] = new CellType[height]{};
-		memcpy(map[x], _maze.map[x], sizeof(CellType) * height);
-	}
-
+    memcpy(map, _maze.map, sizeof(CellType) * width * height);
 }
 
 //Move constructor
@@ -270,9 +262,6 @@ Maze::Maze(Maze&& _maze) noexcept
 
 Maze::~Maze()
 {
-	for (int i = 0; i < width; i++)
-		delete[] map[i];
-
 	delete[] map;
 }
 
