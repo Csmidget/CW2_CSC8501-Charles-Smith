@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.30611.23
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "CW2_CSC8501 Charles Smith", "CW2_CSC8501 Charles Smith\CW2_CSC8501 Charles Smith.vcxproj", "{234D1CB7-F102-488D-944E-2F017BDF66D1}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Debug|x86 = Debug|x86
+		Release|x64 = Release|x64
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{234D1CB7-F102-488D-944E-2F017BDF66D1}.Debug|x64.ActiveCfg = Debug|x64
+		{234D1CB7-F102-488D-944E-2F017BDF66D1}.Debug|x64.Build.0 = Debug|x64
+		{234D1CB7-F102-488D-944E-2F017BDF66D1}.Debug|x86.ActiveCfg = Debug|Win32
+		{234D1CB7-F102-488D-944E-2F017BDF66D1}.Debug|x86.Build.0 = Debug|Win32
+		{234D1CB7-F102-488D-944E-2F017BDF66D1}.Release|x64.ActiveCfg = Release|x64
+		{234D1CB7-F102-488D-944E-2F017BDF66D1}.Release|x64.Build.0 = Release|x64
+		{234D1CB7-F102-488D-944E-2F017BDF66D1}.Release|x86.ActiveCfg = Release|Win32
+		{234D1CB7-F102-488D-944E-2F017BDF66D1}.Release|x86.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {148F9C69-6761-4354-97F1-B4147FBDEB1B}
+	EndGlobalSection
+EndGlobal
