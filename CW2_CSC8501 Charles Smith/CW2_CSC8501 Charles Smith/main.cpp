@@ -1,13 +1,7 @@
 #include <iostream>
 #include <time.h>
 #include "Maze.h"
-
-//Clear the Cin stream in case a bunch of junk was entered.
-void ClearCin()
-{
-    std::cin.clear();
-    std::cin.ignore(INT_MAX, '\n');
-}
+#include "Helpers.h"
 
 void NewMaze()
 {
@@ -48,17 +42,12 @@ void NewMaze()
 
     Maze maze(width, height, exits, true);
 
-    maze.RunSolution();
+    PrintMaze(maze);
 
-    char input{};
-    while (input != 'n' && input != 'y')
-    {
-        std::cout << "Save maze to file? (y/n): ";
-        std::cin >> input;
-        ClearCin();
-    }
+    if (ReceiveYN("Solve maze? (y/n): "))
+        maze.RunSolution();
 
-    if (input == 'y')
+    if (ReceiveYN("Save maze to file? (y/n): "))
         WriteMazeToFile(maze);
 }
 
@@ -66,16 +55,12 @@ void LoadMaze()
 {
     Maze maze = ReadMazeFromFile();
 
-    maze.RunSolution();
+    PrintMaze(maze);
 
-    char input{};
-    while (input != 'n' && input != 'y')
-    {
-        std::cout << "Save maze to file? (y/n): ";
-        std::cin >> input;
-    }
+    if (ReceiveYN("Solve maze? (y/n): "))  
+        maze.RunSolution();
 
-    if (input == 'y')
+    if (ReceiveYN("Save maze to file? (y/n): "))
         WriteMazeToFile(maze);
 }
 

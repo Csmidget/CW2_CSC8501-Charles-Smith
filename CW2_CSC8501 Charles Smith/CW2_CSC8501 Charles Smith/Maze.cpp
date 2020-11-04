@@ -2,12 +2,13 @@
 #include <algorithm>
 #include <queue>
 #include <fstream>
-#include <string>
 #include "Maze.h"
+#include "Helpers.h"
+#include <string>
 
-std::vector<Coord> Maze::GeneratePath(const Coord& _start, const Coord& _finish)
+void Maze::GeneratePlayerPath(Player& _player, const Coord& _finish)
 {
-	std::vector<Coord> path{};
+	_player.path = {};
 
 	struct AStarNode
 	{
@@ -28,7 +29,7 @@ std::vector<Coord> Maze::GeneratePath(const Coord& _start, const Coord& _finish)
 
 	AStarNode* endNode{ nullptr };
 
-	openNodes.push(new AStarNode{ _start,nullptr,0,0,0 });
+	openNodes.push(new AStarNode{ _player.pos,nullptr,0,0,0 });
 
 	while (openNodes.size() > 0)
 	{
@@ -65,17 +66,15 @@ std::vector<Coord> Maze::GeneratePath(const Coord& _start, const Coord& _finish)
 	}
 
 	if (endNode != nullptr)
-	{
 		while (endNode->cameFrom != nullptr)
 		{
-			path.push_back(endNode->pos);
+			_player.path.push_back(endNode->pos);
 
 			endNode = endNode->cameFrom;
 		}
-	}
 	else
-		std::cout << "No valid path from " << _start << " to " << _finish << "\n";
-	
+		std::cout << "No valid path to finish for player at: " << _player.pos << "\n";
+
 	while (openNodes.size() > 0)
 	{
 		delete openNodes.top();
@@ -84,8 +83,6 @@ std::vector<Coord> Maze::GeneratePath(const Coord& _start, const Coord& _finish)
 
 	for (int i = 0; i < closedNodes.size(); i++)
 		delete closedNodes[i];
-
-	return path;
 }
 
 bool Maze::ProcessPlayerTurn(Player& _player)
@@ -113,29 +110,22 @@ void Maze::RunSolution()
 {
 	int currPlayer = activePlayers.size() - 1;
 	
-	while (activePlayers.size() > 0)
-	{
-		PrintMaze(*this);
+	bool autosolve = ReceiveYN("Run every turn without prompting input? Warning, this may take a while. (y/n): ");
 
-		char input{};
-		while (input != 'y' && input != 'n')
-		{
-			std::cout << "Continue? (y/n): ";
-			std::cin >> input;
-			std::cin.clear();
-			std::cin.ignore(INT_MAX, '\n');
-		}
-		
-		if (input == 'n')
-			break;
+	do 
+	{
+		std::cout << "\n";
 
 		if (ProcessPlayerTurn(activePlayers[currPlayer]))
 			activePlayers.erase(activePlayers.begin() + currPlayer);
 
-		currPlayer > 0 ? currPlayer-- : currPlayer = activePlayers.size() - 1;
-	}
+		PrintMaze(*this);
 
-	PrintMaze(*this);
+		currPlayer > 0 ? currPlayer-- : currPlayer = activePlayers.size() - 1;
+
+	} while (activePlayers.size() > 0 && (autosolve || ReceiveYN("Continue? (y/n): ")));
+
+	std::cout << "COMPLETE\n\n";
 }
 
 void Maze::GenerateEntrances(int _count)
@@ -157,7 +147,13 @@ void Maze::GenerateEntrances(int _count)
 	for (int i = 0; i < entranceCount; i++)
 	{
 		entrances.push_back(possibleEntrances[i]);
-		activePlayers.push_back({entrances[i],GeneratePath(entrances[i],finish),CellType::Entrance });
+
+		Player player = { entrances[i],{},CellType::Entrance };
+		GeneratePlayerPath(player, finish);
+
+		if (player.path.size() > 0)
+			activePlayers.push_back(player);
+			
 		(*this)[possibleEntrances[i].x][possibleEntrances[i].y] = CellType::Player;
 	}
 }
@@ -278,17 +274,15 @@ void PrintMaze(const Maze& _maze)
 
 void WriteMazeToFile(const Maze& _maze)
 {
-	std::string fileName{};
-	std::cout << "Enter file name, including extension: ";
-	std::cin >> fileName;
+	std::string fileName;
 
-	while (std::cin.fail())
+	bool validFile = false;
+
+	while (!validFile)
 	{
-		std::cin.clear();
-		std::cin.ignore(INT_MAX, '\n');
+		fileName=  ReceiveFileName();
 
-		std::cout << "Invalid name entered, try again: ";
-		std::cin >> fileName;
+		validFile = FileExists(fileName) ? ReceiveYN("File already exists. Overwrite? (y/n): ") : true;
 	}
 
 	std::ofstream file;
@@ -308,24 +302,16 @@ void WriteMazeToFile(const Maze& _maze)
 	file.close();
 }
 
-
-
 //Factory function to generate maze from file.
 Maze ReadMazeFromFile()
 {
-	std::string fileName{};
-	std::cout << "Enter file name, including extension: ";
-	std::cin >> fileName;
+	std::string fileName;
+	
+	do
+		fileName = ReceiveFileName();
+	while (!FileExists(fileName));
 
-	while (std::cin.fail())
-	{
-		std::cin.clear();
-		std::cin.ignore(INT_MAX, '\n');
-
-		std::cout << "Invalid name entered, try again: ";
-		std::cin >> fileName;
-	}
-
+		
 	std::ifstream file;
 	std::string line;
 	file.open(fileName);
@@ -352,6 +338,8 @@ Maze ReadMazeFromFile()
 	int currLine{ 0 };
 	int currChar{ 0 };
 
+	std::vector<Player> players;
+
 	for (int y = 0; y < height; y++)
 	{
 		getline(file, line);
@@ -367,7 +355,7 @@ Maze ReadMazeFromFile()
 				maze.entrances.push_back({ x,y });
 				break;
 			case CellType::Player:
-				maze.activePlayers.push_back({ {x,y},std::vector<Coord>(),maze.OnBoundary(x,y) ? CellType::Entrance : CellType::Empty });
+				players.push_back({ {x,y},{},maze.OnBoundary(x,y) ? CellType::Entrance : CellType::Empty });
 				break;
 			case CellType::Finish:
 				maze.finish = { x,y };
@@ -376,8 +364,13 @@ Maze ReadMazeFromFile()
 		}
 	}
 
-	for (int i = 0; i < maze.activePlayers.size(); i++)
-		maze.activePlayers[i].path = maze.GeneratePath(maze.activePlayers[i].pos, maze.finish);
+	for (int i = 0; i < players.size(); i++)
+	{
+		maze.GeneratePlayerPath(players[i], maze.finish);
+
+		if (players[i].path.size() > 0)
+			maze.activePlayers.push_back(players[i]);
+	}
 
 	file.close();
 

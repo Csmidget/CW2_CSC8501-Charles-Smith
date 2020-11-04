@@ -19,7 +19,7 @@ private:
 	void GenerateMaze();
 	void GenerateEntrances(int _count);
 	bool ProcessPlayerTurn(Player& _player);
-	std::vector<Coord> GeneratePath(const Coord& _start, const Coord& _finish);
+	void GeneratePlayerPath(Player& _player, const Coord& _finish);
 	CellType* operator[](int _index) { return &map[_index * width]; }
 
 	friend Maze ReadMazeFromFile();

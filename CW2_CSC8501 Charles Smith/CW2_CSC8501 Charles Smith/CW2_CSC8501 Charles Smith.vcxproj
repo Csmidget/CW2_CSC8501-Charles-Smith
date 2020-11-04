@@ -141,12 +141,14 @@
   <ItemGroup>
     <ClCompile Include="CellType.cpp" />
     <ClCompile Include="Coord.cpp" />
+    <ClCompile Include="Helpers.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Maze.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="CellType.h" />
     <ClInclude Include="Coord.h" />
+    <ClInclude Include="Helpers.h" />
     <ClInclude Include="Maze.h" />
     <ClInclude Include="Player.h" />
   </ItemGroup>
