@@ -43,3 +43,5 @@ std::string ReceiveFileName()
 	ClearCin();
 	return fileName;
 }
+
+

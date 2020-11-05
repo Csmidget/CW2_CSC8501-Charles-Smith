@@ -2,11 +2,11 @@
 
 #include <vector>
 #include "Coord.h"                                                                                   
-#include "CellType.h"
+#include "Cell.h"
 
 struct Player
 {
 	Coord pos;
 	std::vector<Coord> path;
-	CellType occupiedCellType;
+	Cell occupiedCell;
 };

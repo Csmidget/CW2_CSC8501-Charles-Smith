@@ -4,8 +4,98 @@
 #include <fstream>
 #include "Maze.h"
 #include "Helpers.h"
-#include <string>
 
+//Empty maze
+Maze::Maze()
+{
+	height = 0;
+	width = 0;
+	playerCount = 0;
+	map = nullptr;
+}
+
+Maze::Maze(int _width, int _height, int _entrances, bool _generate)
+{
+
+	height = _height;
+	width = _width;
+	playerCount = 0;
+
+	finish = { width / 2,height / 2 };
+	map = new Cell[width * height]{};
+
+	if (_generate)
+	{
+		GenerateMaze();
+		GenerateEntrances(_entrances);
+	}
+}
+
+Maze::Maze(const Maze& _maze)
+{
+	height = _maze.height;
+	width = _maze.width;
+	finish = _maze.finish;
+	playerCount = _maze.playerCount;
+
+	activePlayers = _maze.activePlayers;
+	entrances = _maze.entrances;
+
+	map = new Cell[width * height];
+
+	memcpy(map, _maze.map, sizeof(Cell) * width * height);
+}
+
+//Move constructor
+Maze::Maze(Maze&& _maze) noexcept
+{
+	(*this) = std::move(_maze);
+}
+
+Maze::~Maze()
+{
+	delete[] map;
+}
+
+Maze& Maze::operator=(const Maze& _maze)
+{
+	delete[] map;
+
+	height = _maze.height;
+	width = _maze.width;
+	finish = _maze.finish;
+	playerCount = _maze.playerCount;
+
+	activePlayers = _maze.activePlayers;
+	entrances = _maze.entrances;
+
+	map = new Cell[width * height];
+
+	memcpy(map, _maze.map, sizeof(Cell) * width * height);
+
+	return *this;
+}
+
+Maze& Maze::operator=(Maze&& _maze) noexcept
+{
+	width = _maze.width;
+	height = _maze.height;
+	finish = _maze.finish;
+	playerCount = _maze.playerCount;
+
+	Cell* oldMap = map;
+	map = _maze.map;
+	activePlayers = _maze.activePlayers;
+	entrances = _maze.entrances;
+
+	_maze.height = 0;
+	_maze.width = 0;
+	_maze.map = oldMap;
+
+	return *this;
+}
+
+//A star pathfinding
 void Maze::GeneratePlayerPath(Player& _player, const Coord& _finish)
 {
 	_player.path = {};
@@ -56,7 +146,7 @@ void Maze::GeneratePlayerPath(Player& _player, const Coord& _finish)
 		{
 			Coord childPos = curr->pos + childModifiers[i];
 
-			if (!InBounds(childPos.x, childPos.y) || (*this)[childPos.x][childPos.y] == CellType::Wall)
+			if (!InBounds(childPos.x, childPos.y) || (*this)[childPos.x][childPos.y] == Cell::Wall)
 				continue;
 
 			int fromStart = curr->fromStart + 1;
@@ -91,15 +181,18 @@ bool Maze::ProcessPlayerTurn(Player& _player)
 
 	switch ((*this)[next.x][next.y])
 	{
-	case CellType::Finish:
-		(*this)[_player.pos.x][_player.pos.y] = _player.occupiedCellType;
+	case Cell::Finish:
+		(*this)[_player.pos.x][_player.pos.y] = _player.occupiedCell;
 		return true;
-	case::CellType::Empty:
-		(*this)[_player.pos.x][_player.pos.y] = _player.occupiedCellType;
+	case::Cell::Empty:
+		(*this)[_player.pos.x][_player.pos.y] = _player.occupiedCell;
 		_player.pos = next;
 		_player.path.pop_back();
-		_player.occupiedCellType = (*this)[_player.pos.x][_player.pos.y];
-		(*this)[_player.pos.x][_player.pos.y] = CellType::Player;
+		_player.occupiedCell = (*this)[_player.pos.x][_player.pos.y];
+		(*this)[_player.pos.x][_player.pos.y] = Cell::Player;
+		break;
+	case::Cell::Player:
+		std::cout << "Player at " << _player.pos << " is currently blocked, skipping turn.\n";
 		break;
 	}
 
@@ -109,21 +202,42 @@ bool Maze::ProcessPlayerTurn(Player& _player)
 void Maze::RunSolution()
 {
 	int currPlayer = activePlayers.size() - 1;
-	
+
+	bool toFile = ReceiveYN("Write solution to file as it progresses? (y/n): ");
+
+	std::string fileName;
+
+	if (toFile)
+	{
+		bool validFile = false;
+
+		while (!validFile)
+		{
+			fileName = ReceiveFileName();
+
+			validFile = FileExists(fileName) ? ReceiveYN("File already exists. Append? (y/n): ") : true;
+		}
+	}
+
 	bool autosolve = ReceiveYN("Run every turn without prompting input? Warning, this may take a while. (y/n): ");
 
-	do 
+	bool  go{ true };
+	while (activePlayers.size() > 0 && go)
 	{
 		std::cout << "\n";
 
 		if (ProcessPlayerTurn(activePlayers[currPlayer]))
 			activePlayers.erase(activePlayers.begin() + currPlayer);
 
-		PrintMaze(*this);
+		std::cout << *this;
+
+		if (toFile)
+			WriteMazeToFile(*this, fileName, true);
 
 		currPlayer > 0 ? currPlayer-- : currPlayer = activePlayers.size() - 1;
 
-	} while (activePlayers.size() > 0 && (autosolve || ReceiveYN("Continue? (y/n): ")));
+		go = autosolve || ReceiveYN("Continue? (y/n): ");
+	}
 
 	std::cout << "COMPLETE\n\n";
 }
@@ -148,13 +262,14 @@ void Maze::GenerateEntrances(int _count)
 	{
 		entrances.push_back(possibleEntrances[i]);
 
-		Player player = { entrances[i],{},CellType::Entrance };
+		Player player = { entrances[i],{},Cell::Entrance };
 		GeneratePlayerPath(player, finish);
+		playerCount++;
 
 		if (player.path.size() > 0)
 			activePlayers.push_back(player);
-			
-		(*this)[possibleEntrances[i].x][possibleEntrances[i].y] = CellType::Player;
+
+		(*this)[possibleEntrances[i].x][possibleEntrances[i].y] = Cell::Player;
 	}
 }
 
@@ -168,8 +283,8 @@ void Maze::GenerateMaze()
 
 	for (int y = 0; y < height; y++)
 		for (int x = 0; x < width; x++)
-			(*this)[x][y] = CellType::Wall;
-	(*this)[1][1] = CellType::Empty;
+			(*this)[x][y] = Cell::Wall;
+	(*this)[1][1] = Cell::Empty;
 
 	std::vector<FrontierCell> frontierCells{};
 
@@ -183,138 +298,63 @@ void Maze::GenerateMaze()
 		FrontierCell currCell = frontierCells[pos];
 		frontierCells.erase(frontierCells.begin() + pos);
 
-		if ((*this)[currCell.loc.x][currCell.loc.y] != CellType::Wall) continue;
+		if ((*this)[currCell.loc.x][currCell.loc.y] != Cell::Wall) continue;
 
 		Coord loc = currCell.loc;
 
-		(*this)[loc.x][loc.y] = CellType::Empty;
-		(*this)[currCell.connector.x][currCell.connector.y] = CellType::Empty;
+		(*this)[loc.x][loc.y] = Cell::Empty;
+		(*this)[currCell.connector.x][currCell.connector.y] = Cell::Empty;
 
-		if (loc.x + 2 < width - 1 && (*this)[loc.x + 2][loc.y] == CellType::Wall)
+		if (loc.x + 2 < width - 1 && (*this)[loc.x + 2][loc.y] == Cell::Wall)
 			frontierCells.push_back({ {loc.x + 2, loc.y},{loc.x + 1, loc.y} });
 
-		if (loc.x - 2 > 0 && (*this)[loc.x - 2][loc.y] == CellType::Wall)
+		if (loc.x - 2 > 0 && (*this)[loc.x - 2][loc.y] == Cell::Wall)
 			frontierCells.push_back({ {loc.x - 2, loc.y},{loc.x - 1, loc.y} });
 
-		if (loc.y + 2 < height - 1 && (*this)[loc.x][loc.y + 2] == CellType::Wall)
+		if (loc.y + 2 < height - 1 && (*this)[loc.x][loc.y + 2] == Cell::Wall)
 			frontierCells.push_back({ {loc.x, loc.y + 2},{loc.x, loc.y + 1} });
 
-		if (loc.y - 2 > 0 && (*this)[loc.x][loc.y - 2] == CellType::Wall)
+		if (loc.y - 2 > 0 && (*this)[loc.x][loc.y - 2] == Cell::Wall)
 			frontierCells.push_back({ {loc.x, loc.y - 2},{loc.x, loc.y - 1} });
 	}
 
 	for (int x = -1; x <= 1; x++)
 		for (int y = -1; y <= 1; y++)
-			(*this)[finish.x + x][finish.y + y] = CellType::Empty;
-	(*this)[finish.x][finish.y] = CellType::Finish;
+			(*this)[finish.x + x][finish.y + y] = Cell::Empty;
+	(*this)[finish.x][finish.y] = Cell::Finish;
 }
 
-Maze::Maze(int _width, int _height, int _entrances, bool _generate)
-{
-
-	height = _height;
-	width = _width;
-
-	finish = { width / 2,height / 2 };
-	map = new CellType [width * height];
-
-	if (_generate)
-	{
-		GenerateMaze();
-		GenerateEntrances(_entrances);
-	}
-}
-
-//Copy Constructor
-Maze::Maze(const Maze& _maze)
-{
-	height = _maze.height;
-	width = _maze.width;
-	finish = _maze.finish;
-
-	activePlayers = _maze.activePlayers;
-	entrances = _maze.entrances;
-
-	map = new CellType [width * height];
-
-    memcpy(map, _maze.map, sizeof(CellType) * width * height);
-}
-
-//Move constructor
-Maze::Maze(Maze&& _maze) noexcept
-{
-	width = _maze.width;
-	height = _maze.height;
-	finish = _maze.finish;
-
-	map = _maze.map;
-	activePlayers = _maze.activePlayers;
-	entrances = _maze.entrances;
-
-	_maze.height = 0;
-	_maze.width = 0;
-	_maze.map = nullptr;
-}
-
-Maze::~Maze()
-{
-	delete[] map;
-}
-
-void PrintMaze(const Maze& _maze)
+std::ostream& operator<<(std::ostream& _stream, const Maze& _maze)
 {
 	for (int y = 0; y < _maze.Height(); y++)
 	{
 		for (int x = 0; x < _maze.Width(); x++)
-			std::cout << (CELLCHARS[(int)_maze.At(x, y)]);
-		std::cout << "\n";
+			_stream << (CELLCHARS[(int)_maze.At(x, y)]);
+		_stream << "\n";
 	}
-	std::cout << "\n";
+	_stream << "\n";
+
+	return _stream;
 }
 
-void WriteMazeToFile(const Maze& _maze)
+void WriteMazeToFile(const Maze& _maze, const std::string _fileName, bool _append)
 {
-	std::string fileName;
-
-	bool validFile = false;
-
-	while (!validFile)
-	{
-		fileName=  ReceiveFileName();
-
-		validFile = FileExists(fileName) ? ReceiveYN("File already exists. Overwrite? (y/n): ") : true;
-	}
+	auto base = _append ? std::ios_base::app : std::ios_base::out;
 
 	std::ofstream file;
-	file.open(fileName);
-	file.clear();
+	file.open(_fileName, base);
 
-	for (int x = 0; x < _maze.Width(); x++)
-		file << CELLCHARS[(int)_maze.At(x, 0)];
-
-	for (int y = 1; y < _maze.Height(); y++)
-	{
-		file << "\n";
-		for (int x = 0; x < _maze.Width(); x++)
-			file << CELLCHARS[(int)_maze.At(x, y)];
-	}
+	file << _maze;
 
 	file.close();
 }
 
 //Factory function to generate maze from file.
-Maze ReadMazeFromFile()
+Maze ReadMazeFromFile(std::string _fileName)
 {
-	std::string fileName;
-	
-	do
-		fileName = ReceiveFileName();
-	while (!FileExists(fileName));
-
-		
 	std::ifstream file;
 	std::string line;
-	file.open(fileName);
+	file.open(_fileName);
 
 	if (file.fail())
 		throw std::exception("Unable to open file.");
@@ -327,7 +367,8 @@ Maze ReadMazeFromFile()
 	while (!file.eof())
 	{
 		std::getline(file, line);
-		height++;
+		if (line.size() > 0)
+			height++;
 	}
 	Maze maze = Maze(width, height, 0, false);
 
@@ -338,32 +379,38 @@ Maze ReadMazeFromFile()
 	int currLine{ 0 };
 	int currChar{ 0 };
 
+	//We hold on to players for later to generate their paths.
 	std::vector<Player> players;
 
 	for (int y = 0; y < height; y++)
 	{
 		getline(file, line);
 
+		if (line.size() == 0)
+			throw std::exception("Error, provided file is not valid maze.");
+
 		for (int x = 0; x < line.size(); x++)
 		{
-			CellType cell = CharToCellType(line[x]);
+			Cell cell = CharToCell(line[x]);
 			maze[x][y] = cell;
 
 			switch (cell)
 			{
-			case CellType::Entrance:
+			case Cell::Entrance:
 				maze.entrances.push_back({ x,y });
 				break;
-			case CellType::Player:
-				players.push_back({ {x,y},{},maze.OnBoundary(x,y) ? CellType::Entrance : CellType::Empty });
+			case Cell::Player: 
+				maze.playerCount++;
+				players.push_back({ {x,y},{},maze.OnBoundary(x,y) ? Cell::Entrance : Cell::Empty });
 				break;
-			case CellType::Finish:
+			case Cell::Finish:
 				maze.finish = { x,y };
 				break;
 			}
 		}
 	}
 
+	//Calculate player paths AFTER the maze is fully generated.
 	for (int i = 0; i < players.size(); i++)
 	{
 		maze.GeneratePlayerPath(players[i], maze.finish);
@@ -375,4 +422,31 @@ Maze ReadMazeFromFile()
 	file.close();
 
 	return maze;
+}
+
+void Maze::DisplayInfo() const
+{
+	if (playerCount > 0)
+		if (activePlayers.size() == 0)
+			std::cout << "Maze is unsolvable.\n";
+		else
+			std::cout << (activePlayers.size() == playerCount ? "Maze is fully solvable\n" : "Maze is partially solvable\n");
+	else
+		std::cout << "This maze contains no players.\n";
+
+	std::cout << "Average steps to solve: " << AverageStepsToSolve() << "\n";
+
+	std::cout << "\n";
+}
+
+float Maze::AverageStepsToSolve() const
+{
+	int steps{};
+
+	for (int i = 0; i < activePlayers.size(); i++)
+		steps += activePlayers[i].path.size();
+
+	steps /= activePlayers.size();
+
+	return steps;
 }
