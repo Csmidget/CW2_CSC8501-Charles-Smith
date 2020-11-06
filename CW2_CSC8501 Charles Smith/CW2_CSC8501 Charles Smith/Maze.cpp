@@ -1,30 +1,28 @@
-#include <iostream>
-#include <algorithm>
-#include <queue>
-#include <fstream>
 #include "Maze.h"
+
 #include "Helpers.h"
-#include "MazePathfinder.h"
+
+#include <iostream>
+#include <fstream>
 
 //Blank maze
-Maze::Maze() : pathfinder(this)
+Maze::Maze() : pathfinder{this}
 {
 	height = 0;
 	width = 0;
 	playerCount = 0;
 	finish = {};
-	map = nullptr;
+	map = new Cell[0];
 }
 
-Maze::Maze(int _width, int _height, int _entrances, bool _generate) : pathfinder(this)
+Maze::Maze(int _width, int _height, int _entrances, bool _generate) : pathfinder{this}
 {
 	height = _height;
 	width = _width;
 	playerCount = 0;
 
-	finish = { width / 2,height / 2 };
+	finish = { (int)width / 2,(int)height / 2 };
 	map = new Cell[width * height]{};
-
 
 	if (_generate)
 	{
@@ -33,7 +31,7 @@ Maze::Maze(int _width, int _height, int _entrances, bool _generate) : pathfinder
 	}
 }
 
-Maze::Maze(const Maze& _maze) : pathfinder(this)
+Maze::Maze(const Maze& _maze) : pathfinder{this}
 {
 	height = _maze.height;
 	width = _maze.width;
@@ -50,8 +48,9 @@ Maze::Maze(const Maze& _maze) : pathfinder(this)
 }
 
 //Move constructor
-Maze::Maze(Maze&& _maze) noexcept : pathfinder(this)
+Maze::Maze(Maze&& _maze) noexcept : pathfinder{ this }
 {
+	map = nullptr;
 	(*this) = std::move(_maze);
 }
 
@@ -100,9 +99,9 @@ Maze& Maze::operator=(Maze&& _maze) noexcept
 
 std::ostream& operator<<(std::ostream& _stream, const Maze& _maze)
 {
-	for (int y = 0; y < _maze.Height(); y++)
+	for (int y{}; y < _maze.Height(); y++)
 	{
-		for (int x = 0; x < _maze.Width(); x++)
+		for (int x{}; x < _maze.Width(); x++)
 			_stream << (CELLCHARS[(int)_maze.At(x, y)]);
 		_stream << "\n";
 	}
@@ -113,18 +112,18 @@ std::ostream& operator<<(std::ostream& _stream, const Maze& _maze)
 
 void Maze::GeneratePlayerPath(Player& _player)
 {
-	_player.path = pathfinder.Solve(_player.pos);
+	_player.path = pathfinder(_player.pos);
 
 	if (_player.path.size() > 0)
 		activePlayers.push_back(_player);
 	else
-		std::cout << "No valid path for player at: " << _player.pos;
+		std::cout << "No valid path for player at: " << _player.pos << ".\n";
 }
 
 //Returns true if player reaches the goal
 bool Maze::ProcessPlayerTurn(Player& _player)
 {
-	Coord next = _player.path.front();
+	Coord next{ _player.path.front() };
 
 	switch ((*this)[next.x][next.y])
 	{
@@ -148,15 +147,15 @@ bool Maze::ProcessPlayerTurn(Player& _player)
 
 void Maze::RunSolution()
 {
-	int currPlayer = activePlayers.size() - 1;
+	size_t currPlayer{ activePlayers.size() - 1 };
 
-	bool toFile = ReceiveYN("Write solution to file as it progresses? (y/n): ");
+	bool toFile{ ReceiveYN("Write solution to file as it progresses? (y/n): ") };
 
-	std::string fileName;
+	std::string fileName{};
 
 	if (toFile)
 	{
-		bool validFile = false;
+		bool validFile{};
 
 		while (!validFile)
 		{
@@ -166,7 +165,7 @@ void Maze::RunSolution()
 		}
 	}
 
-	bool autosolve = ReceiveYN("Run every turn without prompting input? Warning, this may take a while. (y/n): ");
+	bool autosolve{ ReceiveYN("Run every turn without prompting input? Warning, this may take a while. (y/n): ") };
 
 	bool  go{ true };
 	while (activePlayers.size() > 0 && go)
@@ -189,27 +188,27 @@ void Maze::RunSolution()
 	std::cout << "COMPLETE\n\n";
 }
 
-void Maze::GenerateEntrances(int _count)
+void Maze::GenerateEntrances(size_t _count)
 {
 	//This solution ensures that no exits will overlap with one another and is of known complexity ( O(n) )
-	std::vector<Coord> possibleEntrances;
+	std::vector<Coord> possibleEntrances{};
 	possibleEntrances.reserve(width + height - 2);
 
-	for (int i = 1; i < width / 2 + 1; i++)
-		possibleEntrances.insert(possibleEntrances.end(), { {i * 2 - 1,0} , {i * 2 - 1,height - 1} });
-	for (int i = 1; i < height / 2 + 1; i++)
-		possibleEntrances.insert(possibleEntrances.end(), { {0,i * 2 - 1} , {width - 1 ,i * 2 - 1} });
+	for (int i{1}; i < width / 2 + 1; i++)
+		possibleEntrances.insert(possibleEntrances.end(), { {i * 2 - 1,0} , {i * 2 - 1,(int)height - 1} });
+	for (int i{1}; i < height / 2 + 1; i++)
+		possibleEntrances.insert(possibleEntrances.end(), { {0,i * 2 - 1} , {(int)width - 1 ,i * 2 - 1} });
 
 	std::random_shuffle(possibleEntrances.begin(), possibleEntrances.end());
 
-	int entranceCount = std::min(_count, (int)possibleEntrances.size());
+	size_t entranceCount{ std::min(_count, possibleEntrances.size()) };
 	entrances.reserve(entranceCount);
 
-	for (int i = 0; i < entranceCount; i++)
+	for (size_t i{}; i < entranceCount; i++)
 	{
 		entrances.push_back(possibleEntrances[i]);
 
-		Player player = { entrances[i],{},Cell::Entrance };
+		Player player { entrances[i],{},Cell::Entrance };
 		GeneratePlayerPath(player);
 		playerCount++;
 
@@ -225,9 +224,11 @@ void Maze::GenerateMaze()
 		Coord connector;
 	};
 
-	for (int y = 0; y < height; y++)
-		for (int x = 0; x < width; x++)
+	//Blank out maze with walls.
+	for (int y{}; y < height; y++)
+		for (int x{}; x < width; x++)
 			(*this)[x][y] = Cell::Wall;
+
 	(*this)[1][1] = Cell::Empty;
 
 	std::vector<FrontierCell> frontierCells{};
@@ -237,14 +238,14 @@ void Maze::GenerateMaze()
 
 	while (frontierCells.size() > 0)
 	{
-		int pos = rand() % frontierCells.size();
+		int pos{ rand() % (int)frontierCells.size() };
 
-		FrontierCell currCell = frontierCells[pos];
+		FrontierCell currCell{ frontierCells[pos] };
 		frontierCells.erase(frontierCells.begin() + pos);
 
 		if ((*this)[currCell.loc.x][currCell.loc.y] != Cell::Wall) continue;
 
-		Coord loc = currCell.loc;
+		Coord loc{ currCell.loc };
 
 		(*this)[loc.x][loc.y] = Cell::Empty;
 		(*this)[currCell.connector.x][currCell.connector.y] = Cell::Empty;
@@ -262,17 +263,17 @@ void Maze::GenerateMaze()
 			frontierCells.push_back({ {loc.x, loc.y - 2},{loc.x, loc.y - 1} });
 	}
 
-	for (int x = -1; x <= 1; x++)
-		for (int y = -1; y <= 1; y++)
+	for (int x{-1}; x <= 1; x++)
+		for (int y{-1}; y <= 1; y++)
 			(*this)[finish.x + x][finish.y + y] = Cell::Empty;
 	(*this)[finish.x][finish.y] = Cell::Finish;
 }
 
-void WriteMazeToFile(const Maze& _maze, const std::string _fileName, bool _append)
+void WriteMazeToFile(const Maze& _maze, const std::string& _fileName, bool _append)
 {
-	auto base = _append ? std::ios_base::app : std::ios_base::out;
+	auto base{ _append ? std::ios_base::app : std::ios_base::out };
 
-	std::ofstream file;
+	std::ofstream file{};
 	file.open(_fileName, base);
 
 	file << _maze;
@@ -280,11 +281,13 @@ void WriteMazeToFile(const Maze& _maze, const std::string _fileName, bool _appen
 	file.close();
 }
 
+
+
 //Factory function to generate maze from file.
-Maze ReadMazeFromFile(std::string _fileName)
+Maze ReadMazeFromFile(const std::string& _fileName)
 {
-	std::ifstream file;
-	std::string line;
+	std::ifstream file{};
+	std::string line{};
 	file.open(_fileName);
 
 	if (file.fail())
@@ -292,7 +295,7 @@ Maze ReadMazeFromFile(std::string _fileName)
 
 	getline(file, line);
 
-	int width = line.size();
+	int width{ (int)line.size() };
 	int height{ 1 };
 
 	while (!file.eof())
@@ -301,31 +304,31 @@ Maze ReadMazeFromFile(std::string _fileName)
 		if (line.size() > 0)
 			height++;
 	}
-	Maze maze = Maze(width, height, 0, false);
+
+	Maze maze{ width, height, 0, false };
 
 	file.clear();
 	file.seekg(0);
 
-	char inChar;
+	char inChar{};
 	int currLine{ 0 };
 	int currChar{ 0 };
 
 	//We hold on to players for later to generate their paths.
-	std::vector<Player> players;
+	std::vector<Maze::Player> players{};
 
-	for (int y = 0; y < height; y++)
+	for (int y{}; y < height; y++)
 	{
 		getline(file, line);
 
 		if (line.size() == 0)
-			throw std::exception("Error, provided file is not valid maze.");
+			throw std::exception("Provided file is not valid maze.");
 
-		for (int x = 0; x < line.size(); x++)
+		for (int x{}; x < (int)line.size(); x++)
 		{
-			Cell cell = CharToCell(line[x]);
-			maze[x][y] = cell;
+			maze[x][y] = { CharToCell(line[x]) };
 
-			switch (cell)
+			switch (maze[x][y])
 			{
 			case Cell::Entrance:
 				maze.entrances.push_back({ x,y });
@@ -342,7 +345,7 @@ Maze ReadMazeFromFile(std::string _fileName)
 	}
 
 	//Calculate player paths AFTER the maze is fully generated.
-	for (int i = 0; i < players.size(); i++)
+	for (size_t i{}; i < players.size(); i++)
 		maze.GeneratePlayerPath(players[i]);
 
 	file.close();
@@ -367,9 +370,9 @@ void Maze::DisplayInfo() const
 
 float Maze::AverageStepsToSolve() const
 {
-	int steps{};
+	float steps{};
 
-	for (int i = 0; i < activePlayers.size(); i++)
+	for (size_t i{}; i < activePlayers.size(); i++)
 		steps += activePlayers[i].path.size();
 
 	activePlayers.empty() ? steps = 0 : steps /= activePlayers.size();

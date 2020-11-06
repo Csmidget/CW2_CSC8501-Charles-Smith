@@ -1,6 +1,6 @@
 #pragma once
 #include <string>
-
+#include <iostream>
 
 void ClearCin();
 bool ReceiveYN(std::string _prompt);

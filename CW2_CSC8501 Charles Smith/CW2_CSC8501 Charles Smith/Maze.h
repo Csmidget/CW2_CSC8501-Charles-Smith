@@ -1,17 +1,25 @@
 #pragma once
 
-#include <vector>
-#include <string>
+#include "MazePathFinder.h"
 #include "Coord.h"
-#include "Player.h"
 #include "Cell.h"
-#include "MazePathfinder.h"
+
+#include <string>
+#include <vector>
 
 class Maze
 {
-	friend Maze ReadMazeFromFile(std::string fileName);
-
 private:
+
+	friend Maze ReadMazeFromFile(const std::string& fileName);
+
+	struct Player
+	{
+		Coord pos;
+		std::vector<Coord> path;
+		Cell occupiedCell;
+	};
+
 	int width;
 	int height;
 	int playerCount;
@@ -23,10 +31,10 @@ private:
 	std::vector<Player> activePlayers;
 
 	void GenerateMaze();
-	void GenerateEntrances(int _count);
+	void GenerateEntrances(size_t _count);
 	bool ProcessPlayerTurn(Player& _player);
 	void GeneratePlayerPath(Player& _player);
-	Cell* operator[](int _index) { return &map[_index * height]; }
+	Cell* operator[](size_t _index) { return &map[_index * height]; }
 
 public:
 	Maze();
@@ -35,13 +43,13 @@ public:
 	Maze(Maze&& _maze) noexcept; //Move constructor
 	~Maze();
 
-	Maze& operator=(const Maze& _maze); //copy Assignment
-	Maze& operator=(Maze&& _maze) noexcept; //move Assignment
+	Maze& operator=(const Maze& _maze); //Copy Assignment
+	Maze& operator=(Maze&& _maze) noexcept; //Move Assignment
 
 	int Height() const { return height; }
 	int Width() const { return width; }
 	Coord Finish() const { return finish; }
-	Cell At(int _x, int _y) const { return map[_x * height + _y]; }
+	Cell At(size_t _x, size_t _y) const { return map[_x * height + _y]; }
 
 	bool IsSolvable() const { return activePlayers.size() > 0; }
 	bool IsPartiallySolvable() const { return activePlayers.size() > 0 && activePlayers.size() != playerCount; }
@@ -57,5 +65,5 @@ public:
 
 std::ostream& operator<<(std::ostream& _stream, const Maze& _maze);
 
-void WriteMazeToFile(const Maze& _maze, std::string _fileName, bool _append);
-Maze ReadMazeFromFile(const std::string fileName);
+void WriteMazeToFile(const Maze& _maze,const std::string& _fileName, bool _append);
+Maze ReadMazeFromFile(const std::string& _fileName);

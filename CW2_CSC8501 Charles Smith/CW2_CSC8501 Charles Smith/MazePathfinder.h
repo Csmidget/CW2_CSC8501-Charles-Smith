@@ -1,17 +1,18 @@
 #pragma once
 
-#include <vector>
-#include <map>
-#include <queue>
 #include "Coord.h"
+
+#include <map>
+#include <vector>
+#include <queue>
 
 class Maze;
 
 class MazePathfinder
 {
 	friend class Maze;
-
-	//This is private so that only the Maze class can construct the pathfinder class.
+	
+	//Private so only Maze can construct this class.
 	MazePathfinder(Maze* _maze);
 
 	struct AStarNode
@@ -32,14 +33,17 @@ class MazePathfinder
 	//Nodes with known path to finish
 	std::map<Coord, Coord> solvedPaths;
 
-	std::vector<Coord> ConstructPathToFinish(const Coord& _from);
-	void AddChildrenToOpenList(AStarNode* _node);
 	void Cleanup();
+	void AddChildrenToOpenList(AStarNode* _node);
 	void AddSolvedPath(const AStarNode* _startNode);
+	std::vector<Coord> ConstructPathToFinish(const Coord& _from);
 
 	std::map<Coord,AStarNode*> closedList;
 	std::priority_queue<AStarNode*, std::vector<AStarNode*>, AStarWeightCompare> openList;
 
 public:
-	std::vector<Coord> Solve(Coord _start);
+	std::vector<Coord> operator()(Coord _start);
+
+	//No default constructor
+	MazePathfinder() = delete;
 };

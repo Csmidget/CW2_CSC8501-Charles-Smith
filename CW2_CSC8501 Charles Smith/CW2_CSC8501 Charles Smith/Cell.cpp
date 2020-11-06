@@ -2,7 +2,7 @@
 
 Cell CharToCell(char _char)
 {
-	for (int i = 0; i < CellCOUNT; i++)
+	for (size_t i{}; i < CELLCOUNT; i++)
 		if (CELLCHARS[i] == _char)
 			return (Cell)i;
 

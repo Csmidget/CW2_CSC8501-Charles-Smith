@@ -1,34 +1,30 @@
+#include "Helpers.h"
+#include "Maze.h"
+
 #include <iostream>
 #include <time.h>
-#include "Maze.h"
-#include "Helpers.h"
-
-class Test
-{
-    Test() { ; }
-};
 
 void NewMaze()
 {
-    //I probably wouldn't use a template function to receive input as below, but it is a nice
-    //opportunity to use both templates and lambda functions.
-    int width = ReceiveValue<int>("Enter maze width (Odd number 5 to 201): ",
+    //I normally wouldn't use a template function to receive input as below, but it is a nice
+    //opportunity to show off both templates and lambda functions.
+    int width{ ReceiveValue<int>("Enter maze width (Odd number 5 to 201): ",
                                   "Invalid width. Please enter an odd number from 5 to 201: ",
-                                  [](int val) {return val % 2 != 0 && val >= 5 && val <= 201; });
+                                  [](int val) {return val % 2 != 0 && val >= 5 && val <= 201; }) };
 
 
-    int height = ReceiveValue<int>("Enter maze height (Odd number 5 to 201): ",
+    int height{ ReceiveValue<int>("Enter maze height (Odd number 5 to 201): ",
                                   "Invalid height. Please enter an odd number from 5 to 201: ",
-                                  [](int val) {return val % 2 != 0 && val >= 5 && val <= 201; });
+                                  [](int val) {return val % 2 != 0 && val >= 5 && val <= 201; }) };
 
-    int maxExits = width + height - 2;
-    auto maxExitsStr = std::to_string(maxExits);
-    int exits = ReceiveValue<int>("Enter number of exits (0 to " + maxExitsStr + "): ",
+    int maxExits{ width + height - 2 };
+    auto maxExitsStr{ std::to_string(maxExits) };
+    int exits{ ReceiveValue<int>("Enter number of exits (0 to " + maxExitsStr + "): ",
                                   "Invalid exit count. Please enter a number from 2 to " + maxExitsStr + ": ",
-                                  [maxExits](int val) {return val >= 2 && val <= maxExits; });
+                                  [maxExits](int val) {return val >= 2 && val <= maxExits; }) };
     std::cout << "\n";
 
-    Maze maze(width, height, exits, true);
+    Maze maze{ width, height, exits, true };
 
     std::cout << maze;
     maze.DisplayInfo();
@@ -38,10 +34,9 @@ void NewMaze()
 
     if (ReceiveYN("Save maze to file? (y/n): "))
     {
-        std::string fileName;
+        std::string fileName{};
 
-        bool validFile = false;
-
+        bool validFile{};
         while (!validFile)
         {
             fileName = ReceiveFileName();
@@ -55,21 +50,21 @@ void NewMaze()
 
 void LoadMaze()
 {
-    std::string fileName;
+    std::string fileName{};
 
     do
         fileName = ReceiveFileName();
     while (!FileExists(fileName));
 
-    Maze maze;
+    Maze maze{};
     try
     {
          maze = ReadMazeFromFile(fileName);
     }
     catch(std::exception e)
     {
-        std::cout << e.what() << "\n" << "Enter any key to return to main menu.";
-        std::getchar();
+        std::cout <<"ERROR: " << e.what() << "\n" << "Enter any key to return to main menu.";
+        std::cin;
         ClearCin();
         return;
     }
@@ -82,9 +77,7 @@ void LoadMaze()
 
     if (ReceiveYN("Save maze to file? (y/n): "))
     {
-        std::string fileName;
-
-        bool validFile = false;
+        bool validFile{};
 
         while (!validFile)
         {
@@ -99,7 +92,7 @@ void LoadMaze()
 
 void MazeAnalysis()
 {
-    const int MAZECOUNT = 100;
+    const int MAZECOUNT{100};
 
     Maze mazes[MAZECOUNT]{};
     float averageStepsTotal{};
@@ -107,28 +100,31 @@ void MazeAnalysis()
     float averageHeight{};
     float averageExits{};
 
-    for (size_t i = 0; i < MAZECOUNT; i++)
+    for (size_t i{}; i < MAZECOUNT; i++)
     {
         //Generate random width and height that are odd numbers 5-201.
-        int width = (rand() % 99) * 2 + 5;
-        int height = (rand() % 99) * 2 + 5;
-        int exits = rand() % (width + height - 4) + 2;
+        int width{ (rand() % 99) * 2 + 5 };
+        int height{ (rand() % 99) * 2 + 5 };
+        int exits{ rand() % (width + height - 4) + 2 };
 
         std::cout << i << ": " << width << "x" << height << ", " << exits << " exits.\n";
         mazes[i] = Maze(width, height, exits, true);
+
+        //Extract information about maze
         float averageSteps = mazes[i].AverageStepsToSolve();
         averageStepsTotal += (averageSteps / width + averageSteps / height);
         averageWidth += width;
         averageHeight += height;
         averageExits += exits;
     }
-    //Divide by MAZECOUNT to get average across all mazes.
+
+    //Get average values across all mazes.
     averageStepsTotal /= MAZECOUNT;
     averageWidth /= MAZECOUNT;
     averageHeight /= MAZECOUNT;
     averageExits /= MAZECOUNT;
 
-    //Divide by two to get average between width and height.
+    //Get average between width and height.
     averageStepsTotal /= 2;
 
     std::cout << "\nFor the above mazes:\n\n";
@@ -162,7 +158,7 @@ void DisplayMainMenu()
 
 int main()
 {
-    srand(time(NULL));
+    srand((unsigned int)time(NULL));
 
     char input{};
     bool end{};

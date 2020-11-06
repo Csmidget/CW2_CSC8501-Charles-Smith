@@ -1,9 +1,5 @@
 #pragma once
 
-#include <vector>
-#include "Coord.h"                                                                                   
-#include "Cell.h"
-
 struct Player
 {
 	Coord pos;

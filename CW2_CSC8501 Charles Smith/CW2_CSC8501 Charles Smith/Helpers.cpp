@@ -1,4 +1,5 @@
-#include <iostream>
+#include "Helpers.h"
+
 #include <fstream>
 
 //Clear the Cin stream in case a bunch of junk was entered.
