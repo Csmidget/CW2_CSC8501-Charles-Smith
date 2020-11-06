@@ -139,6 +139,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="MazePathfinder.cpp" />
     <ClCompile Include="Cell.cpp" />
     <ClCompile Include="Coord.cpp" />
     <ClCompile Include="Helpers.cpp" />
@@ -146,6 +147,7 @@
     <ClCompile Include="Maze.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="MazePathfinder.h" />
     <ClInclude Include="Cell.h" />
     <ClInclude Include="Coord.h" />
     <ClInclude Include="Helpers.h" />

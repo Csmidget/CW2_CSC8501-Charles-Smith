@@ -17,6 +17,11 @@ bool operator!=(const Coord& _lhs, const Coord& _rhs)
 	return !(_lhs == _rhs);
 }
 
+bool operator<(const Coord& _lhs, const Coord& _rhs)
+{
+	return _lhs.x == _rhs.x ? _lhs.y < _rhs.y : _lhs.x < _rhs.x;
+}
+
 Coord operator+(Coord _lhs, const Coord& _rhs)
 {
 	return _lhs += _rhs;

@@ -4,25 +4,27 @@
 #include <fstream>
 #include "Maze.h"
 #include "Helpers.h"
+#include "MazePathfinder.h"
 
-//Empty maze
-Maze::Maze()
+//Blank maze
+Maze::Maze() : pathfinder(this)
 {
 	height = 0;
 	width = 0;
 	playerCount = 0;
+	finish = {};
 	map = nullptr;
 }
 
-Maze::Maze(int _width, int _height, int _entrances, bool _generate)
+Maze::Maze(int _width, int _height, int _entrances, bool _generate) : pathfinder(this)
 {
-
 	height = _height;
 	width = _width;
 	playerCount = 0;
 
 	finish = { width / 2,height / 2 };
 	map = new Cell[width * height]{};
+
 
 	if (_generate)
 	{
@@ -31,12 +33,13 @@ Maze::Maze(int _width, int _height, int _entrances, bool _generate)
 	}
 }
 
-Maze::Maze(const Maze& _maze)
+Maze::Maze(const Maze& _maze) : pathfinder(this)
 {
 	height = _maze.height;
 	width = _maze.width;
 	finish = _maze.finish;
 	playerCount = _maze.playerCount;
+
 
 	activePlayers = _maze.activePlayers;
 	entrances = _maze.entrances;
@@ -47,7 +50,7 @@ Maze::Maze(const Maze& _maze)
 }
 
 //Move constructor
-Maze::Maze(Maze&& _maze) noexcept
+Maze::Maze(Maze&& _maze) noexcept : pathfinder(this)
 {
 	(*this) = std::move(_maze);
 }
@@ -95,89 +98,33 @@ Maze& Maze::operator=(Maze&& _maze) noexcept
 	return *this;
 }
 
-//A star pathfinding
-void Maze::GeneratePlayerPath(Player& _player, const Coord& _finish)
+std::ostream& operator<<(std::ostream& _stream, const Maze& _maze)
 {
-	_player.path = {};
-
-	struct AStarNode
+	for (int y = 0; y < _maze.Height(); y++)
 	{
-		Coord pos;
-		AStarNode* cameFrom;
-		int fromStart;
-		int fromEnd;
-		int totalCost;
-	};
-
-	struct AStarCompare
-	{
-		bool operator()(AStarNode*& lhs, AStarNode*& rhs) { return lhs->totalCost > rhs->totalCost; }
-	};
-
-	std::priority_queue<AStarNode*, std::vector<AStarNode*>, AStarCompare> openNodes{};
-	std::vector<AStarNode*> closedNodes{};
-
-	AStarNode* endNode{ nullptr };
-
-	openNodes.push(new AStarNode{ _player.pos,nullptr,0,0,0 });
-
-	while (openNodes.size() > 0)
-	{
-		AStarNode* curr = openNodes.top();
-		openNodes.pop();
-
-		if (std::find_if(closedNodes.begin(), closedNodes.end(), [curr](const AStarNode* val) { return val->pos == curr->pos; }) != closedNodes.end())
-		{
-			delete curr;
-			continue;
-		}
-
-		closedNodes.push_back(curr);
-
-		//Reusing existing paths saves on wasting time retreading the same ground
-		if (curr->pos == _finish)
-		{
-			endNode = curr;
-			break;
-		}
-
-		const Coord childModifiers[]{ {1,0} ,{0,1},{-1,0},{0,-1} };
-		for (int i = 0; i < 4; i++)
-		{
-			Coord childPos = curr->pos + childModifiers[i];
-
-			if (!InBounds(childPos.x, childPos.y) || (*this)[childPos.x][childPos.y] == Cell::Wall)
-				continue;
-
-			int fromStart = curr->fromStart + 1;
-			int fromEnd = abs(childPos.x - finish.x) + abs(childPos.y - finish.y);
-			openNodes.push(new AStarNode{ childPos,curr,fromStart,fromEnd,fromStart + fromEnd });
-		}
+		for (int x = 0; x < _maze.Width(); x++)
+			_stream << (CELLCHARS[(int)_maze.At(x, y)]);
+		_stream << "\n";
 	}
+	_stream << "\n";
 
-	if (endNode != nullptr)
-		while (endNode->cameFrom != nullptr)
-		{
-			_player.path.push_back(endNode->pos);
-
-			endNode = endNode->cameFrom;
-		}
-	else
-		std::cout << "No valid path to finish for player at: " << _player.pos << "\n";
-
-	while (openNodes.size() > 0)
-	{
-		delete openNodes.top();
-		openNodes.pop();
-	}
-
-	for (int i = 0; i < closedNodes.size(); i++)
-		delete closedNodes[i];
+	return _stream;
 }
 
+void Maze::GeneratePlayerPath(Player& _player)
+{
+	_player.path = pathfinder.Solve(_player.pos);
+
+	if (_player.path.size() > 0)
+		activePlayers.push_back(_player);
+	else
+		std::cout << "No valid path for player at: " << _player.pos;
+}
+
+//Returns true if player reaches the goal
 bool Maze::ProcessPlayerTurn(Player& _player)
 {
-	Coord next = _player.path.back();
+	Coord next = _player.path.front();
 
 	switch ((*this)[next.x][next.y])
 	{
@@ -187,7 +134,7 @@ bool Maze::ProcessPlayerTurn(Player& _player)
 	case::Cell::Empty:
 		(*this)[_player.pos.x][_player.pos.y] = _player.occupiedCell;
 		_player.pos = next;
-		_player.path.pop_back();
+		_player.path.erase(_player.path.begin());
 		_player.occupiedCell = (*this)[_player.pos.x][_player.pos.y];
 		(*this)[_player.pos.x][_player.pos.y] = Cell::Player;
 		break;
@@ -263,11 +210,8 @@ void Maze::GenerateEntrances(int _count)
 		entrances.push_back(possibleEntrances[i]);
 
 		Player player = { entrances[i],{},Cell::Entrance };
-		GeneratePlayerPath(player, finish);
+		GeneratePlayerPath(player);
 		playerCount++;
-
-		if (player.path.size() > 0)
-			activePlayers.push_back(player);
 
 		(*this)[possibleEntrances[i].x][possibleEntrances[i].y] = Cell::Player;
 	}
@@ -322,19 +266,6 @@ void Maze::GenerateMaze()
 		for (int y = -1; y <= 1; y++)
 			(*this)[finish.x + x][finish.y + y] = Cell::Empty;
 	(*this)[finish.x][finish.y] = Cell::Finish;
-}
-
-std::ostream& operator<<(std::ostream& _stream, const Maze& _maze)
-{
-	for (int y = 0; y < _maze.Height(); y++)
-	{
-		for (int x = 0; x < _maze.Width(); x++)
-			_stream << (CELLCHARS[(int)_maze.At(x, y)]);
-		_stream << "\n";
-	}
-	_stream << "\n";
-
-	return _stream;
 }
 
 void WriteMazeToFile(const Maze& _maze, const std::string _fileName, bool _append)
@@ -412,12 +343,7 @@ Maze ReadMazeFromFile(std::string _fileName)
 
 	//Calculate player paths AFTER the maze is fully generated.
 	for (int i = 0; i < players.size(); i++)
-	{
-		maze.GeneratePlayerPath(players[i], maze.finish);
-
-		if (players[i].path.size() > 0)
-			maze.activePlayers.push_back(players[i]);
-	}
+		maze.GeneratePlayerPath(players[i]);
 
 	file.close();
 
@@ -446,7 +372,7 @@ float Maze::AverageStepsToSolve() const
 	for (int i = 0; i < activePlayers.size(); i++)
 		steps += activePlayers[i].path.size();
 
-	steps /= activePlayers.size();
+	activePlayers.empty() ? steps = 0 : steps /= activePlayers.size();
 
 	return steps;
 }
