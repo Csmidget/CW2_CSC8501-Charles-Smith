@@ -6,8 +6,8 @@
 
 void NewMaze()
 {
-    //I normally wouldn't use a template function to receive input as below, but it is a nice
-    //opportunity to show off both templates and lambda functions.
+    //I probably wouldn't normally use a template function to receive input as below, but it is a nice
+    //opportunity to show off both templates and lambda expressions.
     int width{ ReceiveValue<int>("Enter maze width (Odd number 5 to 201): ",
                                   "Invalid width. Please enter an odd number from 5 to 201: ",
                                   [](int val) {return val % 2 != 0 && val >= 5 && val <= 201; }) };
@@ -17,14 +17,18 @@ void NewMaze()
                                   "Invalid height. Please enter an odd number from 5 to 201: ",
                                   [](int val) {return val % 2 != 0 && val >= 5 && val <= 201; }) };
 
-    int maxExits{ width + height - 2 };
-    auto maxExitsStr{ std::to_string(maxExits) };
-    int exits{ ReceiveValue<int>("Enter number of exits (0 to " + maxExitsStr + "): ",
-                                  "Invalid exit count. Please enter a number from 2 to " + maxExitsStr + ": ",
-                                  [maxExits](int val) {return val >= 2 && val <= maxExits; }) };
+    int maxPlayers{ width + height - 2 };
+    auto maxPlayersStr{ std::to_string(maxPlayers) };
+    int players{ ReceiveValue<int>("Enter number of players (0 to " + maxPlayersStr + ", more than 5 is not recommended): ",
+                                  "Invalid player count. Please enter a number from 0 to " + maxPlayersStr + ": ",
+                                  [maxPlayers](int val) {return val >= 0 && val <= maxPlayers; }) };
+    
+    if (players > 5 && !ReceiveYN("WARNING: Mazes with a large number of players can take A LOT of turns to solve. Continue? (y/n): "))
+        return;
+
     std::cout << "\n";
 
-    Maze maze{ width, height, exits, true };
+    Maze maze{ width, height, players, true };
 
     std::cout << maze;
     maze.DisplayInfo();
@@ -33,19 +37,7 @@ void NewMaze()
         maze.RunSolution();
 
     if (ReceiveYN("Save maze to file? (y/n): "))
-    {
-        std::string fileName{};
-
-        bool validFile{};
-        while (!validFile)
-        {
-            fileName = ReceiveFileName();
-
-            validFile = FileExists(fileName) ? ReceiveYN("File already exists. Overwrite? (y/n): ") : true;
-        }
-
-        WriteMazeToFile(maze, fileName, false);
-    }
+        WriteMazeToFile(maze, ReceiveFileNameForWrite("File already exists. Overwrite? (y/n): "), false);
 }
 
 void LoadMaze()
@@ -76,18 +68,7 @@ void LoadMaze()
         maze.RunSolution();
 
     if (ReceiveYN("Save maze to file? (y/n): "))
-    {
-        bool validFile{};
-
-        while (!validFile)
-        {
-            fileName = ReceiveFileName();
-
-            validFile = FileExists(fileName) ? ReceiveYN("File already exists. Overwrite? (y/n): ") : true;
-        }
-
-        WriteMazeToFile(maze, fileName, false);
-    }
+        WriteMazeToFile(maze, ReceiveFileNameForWrite("File already exists. Overwrite? (y/n): "), false);
 }
 
 void MazeAnalysis()
@@ -99,23 +80,25 @@ void MazeAnalysis()
     float averageWidth{};
     float averageHeight{};
     float averageExits{};
+    int averageReusedNodesPerPlayer{};
 
     for (size_t i{}; i < MAZECOUNT; i++)
     {
         //Generate random width and height that are odd numbers 5-201.
         int width{ (rand() % 99) * 2 + 5 };
         int height{ (rand() % 99) * 2 + 5 };
-        int exits{ rand() % (width + height - 4) + 2 };
+        int players{ rand() % (width + height - 4) + 2 };
 
-        std::cout << i << ": " << width << "x" << height << ", " << exits << " exits.\n";
-        mazes[i] = Maze(width, height, exits, true);
+        std::cout << i << ": " << width << "x" << height << ", " << players << " players.\n";
+        mazes[i] = Maze(width, height, players, true);
 
         //Extract information about maze
         float averageSteps = mazes[i].AverageStepsToSolve();
         averageStepsTotal += (averageSteps / width + averageSteps / height);
         averageWidth += width;
         averageHeight += height;
-        averageExits += exits;
+        averageExits += players;
+        averageReusedNodesPerPlayer += mazes[i].PathfindingReusedNodes() / players;
     }
 
     //Get average values across all mazes.
@@ -123,6 +106,7 @@ void MazeAnalysis()
     averageWidth /= MAZECOUNT;
     averageHeight /= MAZECOUNT;
     averageExits /= MAZECOUNT;
+    averageReusedNodesPerPlayer /= MAZECOUNT;
 
     //Get average between width and height.
     averageStepsTotal /= 2;
@@ -130,9 +114,18 @@ void MazeAnalysis()
     std::cout << "\nFor the above mazes:\n\n";
     std::cout << "The average width was: " << averageWidth << ".\n";
     std::cout << "The average height was: " << averageHeight << ".\n";
-    std::cout << "The average number of exits was: " << averageExits << ".\n";
-    std::cout << "Average increase in steps required to solve maze per unit of width or height: " << averageStepsTotal << " steps.\n";
+    std::cout << "The average number of players was: " << averageExits << ".\n";
+    std::cout << "On average, the pathfinder was able save time by reusing " << averageReusedNodesPerPlayer << " path nodes per player.\n";
+    std::cout << "Average increase in steps required to solve maze per unit of width or height: " << averageStepsTotal << " steps.\n\n";
 
+    if (ReceiveYN("Save mazes to file? (y/n): "))
+    {
+        std::string fileName{ ReceiveFileNameForWrite("File already exists. Append? (y/n): ") };
+        for (size_t i{}; i < MAZECOUNT; i++)
+            WriteMazeToFile(mazes[i], fileName, true);
+        std::cout << "Saved.\n";
+    }
+    std::cout << "Enter any key to return to menu.\n";
     std::cin;
     ClearCin();
 }
@@ -155,14 +148,13 @@ void DisplayMainMenu()
     std::cout << "Command: ";
 }
 
-
 int main()
 {
     srand((unsigned int)time(NULL));
 
     char input{};
-    bool end{};
-    while (!end)
+    bool go{true};
+    while (go)
     {
         DisplayMainMenu();
         std::cin >> input;
@@ -184,7 +176,7 @@ int main()
             break;
         case 'q':
         case'Q':
-            end = true;
+            go = false;
             break;
         }
     }

@@ -8,6 +8,20 @@
 
 class Maze;
 
+// HEADER SUMMARY
+// This functor runs A Star pathfinding to calculate routes to a mazes finishing point.
+// As it always calculates the shortest route from a point to the finish, it caches any
+// routes it calculates for future use.
+// 
+// As all players are moving to the same point in the maze, it is impossible for deadlock
+// situations to occur where players endlessly block one another.
+// 
+// If it is impossible for a player to reach the finish, no route will be created and the
+// player will remain static.
+//
+//Can only be instantiated by the Maze class and is stored as a member of the Maze, ensuring  
+//the pointer back to the maze is always valid (Outside of some hackery).
+
 class MazePathfinder
 {
 	friend class Maze;
@@ -30,6 +44,10 @@ class MazePathfinder
 	//The maze that owns this pathfinder.
 	Maze* maze;
 
+	//Purely used for analysis purposes.
+	int reusedNodeCount;
+	void CountReusedNodes(Coord _start);
+
 	//Nodes with known path to finish
 	std::map<Coord, Coord> solvedPaths;
 
@@ -44,6 +62,11 @@ class MazePathfinder
 public:
 	std::vector<Coord> operator()(Coord _start);
 
-	//No default constructor
+	//No default constructors
 	MazePathfinder() = delete;
+	MazePathfinder(MazePathfinder&) = delete;
+	MazePathfinder(MazePathfinder&&) = delete;
+
+	MazePathfinder& operator=(const MazePathfinder& _maze); //Copy Assignment
+	MazePathfinder& operator=(MazePathfinder&& _maze) noexcept; //Move Assignment
 };

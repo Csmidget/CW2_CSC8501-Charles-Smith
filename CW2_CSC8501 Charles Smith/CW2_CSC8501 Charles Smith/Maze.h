@@ -7,6 +7,12 @@
 #include <string>
 #include <vector>
 
+// HEADER SUMMARY
+// The core of the program. Manages maze state and controls
+// maze generation, pathfinding and display.
+
+enum class TurnResult {Finished, Blocked, Moved, Invalid};
+
 class Maze
 {
 private:
@@ -32,9 +38,10 @@ private:
 
 	void GenerateMaze();
 	void GenerateEntrances(size_t _count);
-	bool ProcessPlayerTurn(Player& _player);
+	TurnResult ProcessPlayerTurn(Player& _player);
 	void GeneratePlayerPath(Player& _player);
 	Cell* operator[](size_t _index) { return &map[_index * height]; }
+	Cell& operator[](Coord _xy) { return map[_xy.x * height + _xy.y]; }
 
 public:
 	Maze();
@@ -50,16 +57,18 @@ public:
 	int Width() const { return width; }
 	Coord Finish() const { return finish; }
 	Cell At(size_t _x, size_t _y) const { return map[_x * height + _y]; }
+	Cell At(Coord _xy) const { return map[_xy.x * height + _xy.y]; }
 
+	int PathfindingReusedNodes() const { return pathfinder.reusedNodeCount; }
 	bool IsSolvable() const { return activePlayers.size() > 0; }
 	bool IsPartiallySolvable() const { return activePlayers.size() > 0 && activePlayers.size() != playerCount; }
 	bool IsFullySolvable() const { return activePlayers.size() > 0 && activePlayers.size() == playerCount;; }
-	bool InBounds(int _x, int _y) const { return _x >= 0 && _x < width && _y >= 0 && _y < height; }
+	bool InBounds(Coord _xy) const { return _xy.x >= 0 && _xy.x < width && _xy.y >= 0 && _xy.y < height; }
 	bool OnBoundary(int _x, int _y) const { return _x == 0 || _x == width - 1 || _y == 0 || _y == height - 1; }
 	void DisplayInfo() const;
 	float AverageStepsToSolve() const;
 
-	//This is the only public function that can change the mazes state.
+	//This is the only public function that can change the mazes state (Except for constructors and assignment operators)
 	void RunSolution();
 };
 

@@ -1,5 +1,10 @@
 #pragma once
 
+// HEADER SUMMARY
+// This header allows quick manipulation of how mazes are displayed and saved.
+// Changing the characters in the CELLCHARS array will automatically update
+// how the program reads and writes mazes.
+
 const int CELLCOUNT = 6;
 const char CELLCHARS[CELLCOUNT] = { ' ','#','F','E','P','?' };
 

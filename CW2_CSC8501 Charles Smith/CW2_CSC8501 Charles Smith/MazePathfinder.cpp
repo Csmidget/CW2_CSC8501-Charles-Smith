@@ -5,6 +5,23 @@
 MazePathfinder::MazePathfinder(Maze* _maze)
 {
 	maze = _maze;
+	reusedNodeCount = 0;
+}
+
+MazePathfinder& MazePathfinder::operator=(const MazePathfinder& _other)
+{
+	reusedNodeCount = _other.reusedNodeCount;
+	solvedPaths = _other.solvedPaths;
+
+	return *this;
+}
+
+MazePathfinder& MazePathfinder::operator=(MazePathfinder&& _other) noexcept
+{
+	reusedNodeCount = _other.reusedNodeCount;
+	solvedPaths = std::move(_other.solvedPaths);
+
+	return *this;
 }
 
 //Return to default state ready for next request.
@@ -28,7 +45,7 @@ void MazePathfinder::AddChildrenToOpenList(AStarNode* _node)
 	{
 		Coord childPos{ _node->pos + childModifiers[i] };
 
-		if (!maze->InBounds(childPos.x, childPos.y) || maze->At(childPos.x, childPos.y) == Cell::Wall)
+		if (!maze->InBounds(childPos) || maze->At(childPos) == Cell::Wall)
 			continue;
 
 		int fromStart{ _node->fromStart + 1 };
@@ -44,10 +61,7 @@ std::vector<Coord> MazePathfinder::ConstructPathToFinish(const Coord& _from)
 
 	if (solvedPaths.find(curr) != solvedPaths.end())
 		while (curr != maze->Finish())
-		{
-			path.push_back(solvedPaths[curr]);
-			curr = solvedPaths[curr];
-		}
+			path.push_back(curr = solvedPaths[curr]);
 
 	return path;
 }
@@ -59,6 +73,17 @@ void MazePathfinder::AddSolvedPath(const AStarNode* _startNode)
 	{
 		solvedPaths[currentNode->cameFrom->pos] = currentNode->pos;
 		currentNode = currentNode->cameFrom;
+	}
+}
+
+//Only used for maze analysis.
+void MazePathfinder::CountReusedNodes(Coord _start)
+{
+	Coord curr{ _start };
+	while (curr != maze->Finish())
+	{
+		reusedNodeCount++;
+		curr = solvedPaths[curr];
 	}
 }
 
@@ -82,6 +107,7 @@ std::vector<Coord> MazePathfinder::operator()(Coord _from)
 		//Reusing existing paths saves on wasting time retreading the same ground
 		if (curr->pos == maze->Finish() || solvedPaths.find(curr->pos) != solvedPaths.end())
 		{
+			CountReusedNodes(curr->pos);
 			AddSolvedPath(curr);
 			break;
 		}

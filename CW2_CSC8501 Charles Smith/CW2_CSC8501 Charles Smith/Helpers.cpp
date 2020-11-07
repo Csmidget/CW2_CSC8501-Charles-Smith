@@ -2,7 +2,6 @@
 
 #include <fstream>
 
-//Clear the Cin stream in case a bunch of junk was entered.
 void ClearCin()
 {
     std::cin.clear();
@@ -42,6 +41,21 @@ std::string ReceiveFileName()
 	}
 
 	ClearCin();
+	return fileName;
+}
+
+std::string ReceiveFileNameForWrite(std::string _existsPrompt)
+{
+	std::string fileName{};
+	bool validFile{};
+
+	while (!validFile)
+	{
+		fileName = ReceiveFileName();
+
+		validFile = FileExists(fileName) ? ReceiveYN(_existsPrompt) : true;
+	}
+
 	return fileName;
 }
 
