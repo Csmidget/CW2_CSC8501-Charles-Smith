@@ -104,7 +104,15 @@ void Maze::GeneratePlayerPath(Player& _player)
 	_player.path = pathfinder(_player.pos);
 
 	if (_player.path.size() > 0)
-		activePlayers.push_back(_player);
+	{
+		int pos{};
+		//Placing players in path size order will reduce congestion in heavily populated mazes by ensuring players with
+		//fewer steps to the finish move first. (Player turns are processed from the end of the vector to the beginning)
+		while (pos != activePlayers.size() && activePlayers[pos].path.size() > _player.path.size())
+			pos++;
+		activePlayers.insert(activePlayers.begin() + pos, _player);
+	}
+		
 	else
 		std::cout << "No valid path for player at: " << _player.pos << ".\n";
 }
@@ -136,8 +144,6 @@ TurnResult Maze::ProcessPlayerTurn(Player& _player)
 
 void Maze::RunSolution()
 {
-	size_t currPlayer{ activePlayers.size() - 1 };
-
 	bool toFile{ ReceiveYN("Write solution to file instead of console? (y/n): ") };
 
 	std::string fileName{};
@@ -149,7 +155,8 @@ void Maze::RunSolution()
 	bool autosolve{ toFile || ReceiveYN("Run every turn without prompting input? Warning, this may take a while. (y/n): ") };
 
 	bool  go{ true };
-	while (activePlayers.size() > 0 && go)
+	size_t currPlayer{ activePlayers.size() - 1 };
+	while (activePlayers.size() != 0 && go)
 	{
 		Player& currentPlayer = activePlayers[currPlayer];
 		switch (ProcessPlayerTurn(currentPlayer))
@@ -169,7 +176,7 @@ void Maze::RunSolution()
 			break;
 		}
 
-		currPlayer > 0 ? currPlayer-- : currPlayer = activePlayers.size() - 1;
+		currPlayer == 0 ? currPlayer = activePlayers.size() - 1 : currPlayer--;
 
 		go = autosolve || ReceiveYN("Continue? (y/n): ");
 	}
@@ -228,7 +235,7 @@ void Maze::GenerateMaze()
 	frontierCells.push_back({ {3,1},{2,1} });
 	frontierCells.push_back({ {1,3},{1,2} });
 
-	while (frontierCells.size() > 0)
+	while (frontierCells.size() != 0)
 	{
 		int pos{ rand() % (int)frontierCells.size() };
 
@@ -292,7 +299,7 @@ Maze ReadMazeFromFile(const std::string& _fileName)
 	while (!file.eof())
 	{
 		std::getline(file, line);
-		if (line.size() > 0)
+		if (line.size() != 0)
 			height++;
 	}
 
