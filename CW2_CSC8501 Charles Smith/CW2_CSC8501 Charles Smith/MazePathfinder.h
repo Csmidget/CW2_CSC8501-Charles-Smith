@@ -44,7 +44,7 @@ class MazePathfinder
 	//The maze that owns this pathfinder.
 	Maze* maze;
 
-	//Purely used for analysis purposes.
+	//Purely used for analysis purposes. Slows pathfinding down slightly.
 	int reusedNodeCount;
 	void CountReusedNodes(Coord _start);
 

@@ -144,15 +144,15 @@ TurnResult Maze::ProcessPlayerTurn(Player& _player)
 
 void Maze::RunSolution()
 {
-	bool toFile{ ReceiveYN("Write solution to file instead of console? (y/n): ") };
+	bool toFile{ Helpers::ReceiveYN("Write solution to file instead of console? (y/n): ") };
 
 	std::string fileName{};
 
 	if (toFile)
-		fileName = ReceiveFileNameForWrite("File already exists. Append? (y/n): ");
+		fileName = Helpers::ReceiveFileNameForWrite("File already exists. Append? (y/n): ");
 
 	//Always autosolve if we're outputting to file.
-	bool autosolve{ toFile || ReceiveYN("Run every turn without prompting input? Warning, this may take a while. (y/n): ") };
+	bool autosolve{ toFile || Helpers::ReceiveYN("Run every turn without prompting input? Warning, this may take a while. (y/n): ") };
 
 	bool  go{ true };
 	size_t currPlayer{ activePlayers.size() - 1 };
@@ -178,7 +178,7 @@ void Maze::RunSolution()
 
 		currPlayer == 0 ? currPlayer = activePlayers.size() - 1 : currPlayer--;
 
-		go = autosolve || ReceiveYN("Continue? (y/n): ");
+		go = autosolve || Helpers::ReceiveYN("Continue? (y/n): ");
 	}
 
 	std::cout << "\nCOMPLETE\n\n";
@@ -188,7 +188,6 @@ void Maze::GenerateEntrances(size_t _count)
 {
 	//This solution ensures that no exits will overlap with one another and is of known complexity ( O(n) )
 	//List every possible entrance to the maze and shuffle.
-
 	std::vector<Coord> possibleEntrances{};
 	possibleEntrances.reserve(width + height - 2);
 
@@ -365,7 +364,7 @@ void Maze::DisplayInfo() const
 		std::cout << "This maze contains no players.\n";
 
 	std::cout << "Average steps to solve: " << AverageStepsToSolve() << "\n";
-	std::cout << "The pathfinder reused " << pathfinder.reusedNodeCount / activePlayers.size() << " path nodes per player.\n\n";
+	std::cout << "The pathfinder reused " << (activePlayers.empty() ? 0 : pathfinder.reusedNodeCount / activePlayers.size()) << " path nodes per player.\n\n";
 
 }
 

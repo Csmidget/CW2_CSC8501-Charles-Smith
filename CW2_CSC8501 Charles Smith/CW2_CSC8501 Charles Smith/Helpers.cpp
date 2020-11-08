@@ -2,61 +2,64 @@
 
 #include <fstream>
 
-void ClearCin()
+namespace Helpers
 {
-    std::cin.clear();
-    std::cin.ignore(INT_MAX, '\n');
-}
-
-bool ReceiveYN(std::string _prompt)
-{
-	char input{};
-	while (input != 'y' && input != 'n')
+	void ClearCin()
 	{
-		std::cout << _prompt;
-		std::cin >> input;
-		ClearCin();
+		std::cin.clear();
+		std::cin.ignore(INT_MAX, '\n');
 	}
-	return input == 'y';
-}
 
-bool FileExists(std::string _fileName)
-{
-	std::ifstream file (_fileName);
-	return file.good();
-}
-
-std::string ReceiveFileName()
-{
-	std::string fileName{};
-	std::cout << "Enter file name, including extension: ";
-	std::cin >> fileName;
-
-	while (std::cin.fail())
+	bool ReceiveYN(std::string _prompt)
 	{
-		ClearCin();
+		char input{};
+		while (input != 'y' && input != 'n')
+		{
+			std::cout << _prompt;
+			std::cin >> input;
+			ClearCin();
+		}
+		return input == 'y';
+	}
 
-		std::cout << "Invalid name entered, try again: ";
+	bool FileExists(std::string _fileName)
+	{
+		std::ifstream file(_fileName);
+		return file.good();
+	}
+
+	std::string ReceiveFileName()
+	{
+		std::string fileName{};
+		std::cout << "Enter file name, including extension: ";
 		std::cin >> fileName;
+
+		while (std::cin.fail())
+		{
+			ClearCin();
+
+			std::cout << "Invalid name entered, try again: ";
+			std::cin >> fileName;
+		}
+
+		ClearCin();
+		return fileName;
 	}
 
-	ClearCin();
-	return fileName;
-}
-
-std::string ReceiveFileNameForWrite(std::string _existsPrompt)
-{
-	std::string fileName{};
-	bool validFile{};
-
-	while (!validFile)
+	std::string ReceiveFileNameForWrite(std::string _existsPrompt)
 	{
-		fileName = ReceiveFileName();
+		std::string fileName{};
+		bool validFile{};
 
-		validFile = FileExists(fileName) ? ReceiveYN(_existsPrompt) : true;
+		while (!validFile)
+		{
+			fileName = ReceiveFileName();
+
+			validFile = FileExists(fileName) ? ReceiveYN(_existsPrompt) : true;
+		}
+
+		return fileName;
 	}
-
-	return fileName;
 }
 
 
